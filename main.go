@@ -11,6 +11,9 @@ import (
 )
 
 func main() {
+	// 0. Start our asynchronous Event-Listener channel receiver
+	engine.StartEngine()
+
 	// 1. Setup global multiplexer and bind endpoints
 	mux := http.NewServeMux()
 	routes.SetupRoutes(mux)
@@ -35,11 +38,8 @@ func main() {
 	// 4. Trigger High Velocity Mock Engine on API Server Instance
 	client.MockUserEngine(5000, "http://localhost:8080/api/submit")
 
-	// 5. Ensure final background tasks close and show output
-	time.Sleep(1 * time.Second)
-
-	// Show Metrics Output
-	engine.PrintMetrics()
+	// 5. Signal the Event-Channel to stop taking requests. Wait for pending queue to print metrics gracefully
+	engine.StopEngine()
 
 	utils.InfoLog.Println("Simulation completely done. Exiting.")
 }

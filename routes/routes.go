@@ -20,7 +20,7 @@ func submitAnswerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Capture response time immediately for checking who was strictly first later
+	// Capture response time immediately natively to chronologically lock
 	receiveTime := time.Now()
 
 	bodyBytes, err := io.ReadAll(r.Body)
@@ -35,20 +35,9 @@ func submitAnswerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Record metrics: Even if the game is "won", we must record the payload info
-	engine.RecordAnswer(payload.Answer)
-
-	// 2. Only allow correct answers to attempt obtaining the winner lock
-	if payload.Answer == "yes" {
-		if !engine.IsGameOver() {
-			engine.CheckAndRecordWinner(payload.UserID, receiveTime)
-		}
-	}
+	// Distribute payload asynchronously via Channels directly eliminating all waiting and atomics
+	engine.ProcessEvent(payload.UserID, payload.Answer, receiveTime)
 
 	w.WriteHeader(http.StatusOK)
-	if engine.IsGameOver() {
-		w.Write([]byte("Answer received. Game is already over."))
-	} else {
-		w.Write([]byte("Answer received."))
-	}
+	w.Write([]byte("Event enqueued."))
 }
